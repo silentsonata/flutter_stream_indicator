@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 void main() => runApp(const MyApp());
 
@@ -9,8 +10,39 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       title: "OBS Stream Indicator",
-      home: HomePage(),
+      home: FirebaseConnection(),
     );
+  }
+}
+
+class FirebaseConnection extends StatefulWidget {
+  const FirebaseConnection({Key? key}) : super(key: key);
+
+  @override
+  State<StatefulWidget> createState() {
+    return _FirebaseState();
+  }
+}
+
+class _FirebaseState extends State<FirebaseConnection> {
+  final Future<FirebaseApp> _initialization = Firebase.initializeApp();
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+        future: _initialization,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return const _ErrorWidget(
+                'There was a problem connecting to the server. Please try again later.');
+          }
+
+          if (snapshot.connectionState == ConnectionState.done) {
+            return const HomePage();
+          }
+
+          return const _LoadingWidget();
+        });
   }
 }
 
@@ -24,8 +56,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // Internet Status
-  bool isConnected = true;
   // Obs Status
   bool isOnline = false;
   Color _backgroundColor = Colors.red;
@@ -34,25 +64,20 @@ class _HomePageState extends State<HomePage> {
   // TODO: Add firebase logic
   void _changeStatus() {
     setState(() {
-      if (isConnected) {
-        if (isOnline) {
-          // Online
-          _backgroundColor = Colors.green;
-          _message = 'Live';
+      if (isOnline) {
+        // Online
+        _backgroundColor = Colors.green;
+        _message = 'Live';
 
-          // For Testing Purposes
-          isOnline = false;
-        } else {
-          // Offline
-          _backgroundColor = Colors.red;
-          _message = 'Offline';
-
-          // For Testing Purposes
-          isOnline = true;
-        }
+        // For Testing Purposes
+        isOnline = false;
       } else {
-        _backgroundColor = Colors.black;
-        _message = 'error';
+        // Offline
+        _backgroundColor = Colors.red;
+        _message = 'Offline';
+
+        // For Testing Purposes
+        isOnline = true;
       }
     });
   }
@@ -84,6 +109,45 @@ class _HomePageState extends State<HomePage> {
           )
         ],
       ),
+    );
+  }
+}
+
+// Widgets
+class _LoadingWidget extends StatelessWidget {
+  const _LoadingWidget({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+}
+
+class _ErrorWidget extends StatelessWidget {
+  const _ErrorWidget(this._message);
+
+  final String _message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(children: [
+        Container(
+          width: MediaQuery.of(context).size.width,
+          height: MediaQuery.of(context).size.height,
+          color: Colors.black,
+        ),
+        Center(
+          child: Text(
+            _message,
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      ]),
     );
   }
 }
